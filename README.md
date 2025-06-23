@@ -1,4 +1,16 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Queue Management Web Application
+
+A modern web application built with Next.js for managing queues on a site. Ideal for businesses, events, or any scenario requiring an organized waiting system.
+
+## Features
+
+- Add users to a queue with name information
+- Real-time display of current queue status
+- Process and manage people in the queue
+- Edit queue entries
+- Drag-and-drop queue reordering
+- Dark mode support
+- Responsive design for all devices
 
 ## Getting Started
 
@@ -29,8 +41,41 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Docker Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Using Docker Compose (Recommended)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Make sure you have Docker and Docker Compose installed
+2. Run the following command:
+
+```bash
+npm run docker:compose
+# Or directly
+docker-compose up -d
+```
+
+This will build the Docker image and start the container. The app will be accessible at http://localhost:3000.
+
+### Manual Docker Build and Run
+
+```bash
+# Build the Docker image
+npm run docker:build
+# Or directly
+docker build -t maimai-queue .
+
+# Run the container
+npm run docker:run
+# Or directly
+docker run -p 3000:3000 maimai-queue
+```
+
+### Data Persistence
+
+The SQLite database is stored in a Docker volume named `sqlite_data`. This ensures that your queue data persists between container restarts.
+
+## Alternative Deployment: Vercel
+
+The easiest way to deploy your Next.js app without Docker is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

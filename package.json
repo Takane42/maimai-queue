@@ -6,18 +6,25 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "docker:build": "docker build -t maimai-queue .",
+    "docker:run": "docker run -p 3000:3000 maimai-queue",
+    "docker:compose": "docker-compose up -d"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
+    "better-sqlite3": "^12.0.0",
+    "next": "15.3.4",
+    "next-connect": "^1.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "next": "15.3.4"
+    "swr": "^2.3.3"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4"
   }
 }
