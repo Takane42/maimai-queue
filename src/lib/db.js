@@ -29,13 +29,17 @@ db.exec(`
     joinedAt TEXT NOT NULL,
     processingStartedAt TEXT,
     completedAt TEXT,
-    cancelledAt TEXT
+    cancelledAt TEXT,
+    resetDate TEXT DEFAULT NULL
   );
 
   CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+  
+  -- Add resetDate column if it doesn't exist (for migration)
+  PRAGMA table_info(queue);
 `);
 
 // Initialize settings if not present

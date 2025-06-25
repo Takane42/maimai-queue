@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { QueueProvider } from "./contexts/QueueContext";
 import Navigation from "./components/Navigation";
+import SchedulerInitializer from "./components/SchedulerInitializer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +32,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors`}
       >
         <QueueProvider>
+          <SchedulerInitializer />
           <Navigation />
           <main className="container mx-auto px-4 pb-12 max-w-6xl">
             {children}
