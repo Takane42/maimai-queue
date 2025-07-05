@@ -25,19 +25,21 @@ ENV NODE_ENV=production
 # Create app directory
 WORKDIR /app
 
-# Don't run as root
+# Don't run as root - create user and group first
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
-USER nextjs
+
+# Create directories and set ownership BEFORE switching users
+RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
 
 # Copy necessary files
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Create a directory for the SQLite database and make it writable for the nextjs user
-RUN mkdir -p /app/data
 COPY --from=builder --chown=nextjs:nodejs /app/data ./data
+
+# NOW switch to the nextjs user
+USER nextjs
 
 # Expose the port
 EXPOSE 3000
