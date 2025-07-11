@@ -1,4 +1,5 @@
 FROM node:20-alpine AS base
+ENV TIMEZONE=Asia/Jakarta
 
 # Install dependencies for better-sqlite3
 RUN apk add --no-cache python3 make g++ build-base
@@ -8,11 +9,13 @@ WORKDIR /app
 
 # Install dependencies
 FROM base AS deps
+ENV TIMEZONE=Asia/Jakarta
 COPY package.json ./
 RUN npm install
 
 # Build the app
 FROM base AS builder
+ENV TIMEZONE=Asia/Jakarta
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
@@ -31,7 +34,7 @@ RUN apk add --no-cache tzdata
 
 # Set the timezone
 RUN ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime && echo $TIMEZONE > /etc/timezone
-# Install necessary packages
+
 
 # Create app directory
 WORKDIR /app
