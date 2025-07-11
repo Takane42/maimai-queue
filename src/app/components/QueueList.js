@@ -32,6 +32,13 @@ const QueueList = () => {
   const handleComplete = async () => {
     if (processingPerson) {
       await completeProcessing(processingPerson.id);
+      
+      // Automatically process next person if there are people waiting
+      if (waitingPeople.length > 0) {
+        setTimeout(() => {
+          processNext();
+        }, 500); // Small delay for better UX
+      }
     }
   };
 
@@ -47,6 +54,16 @@ const QueueList = () => {
           name2: processingPerson.name2 || null,
           notes: processingPerson.notes || null
         });
+        
+        // Automatically process next person if there are people waiting
+        // Check after a short delay to ensure the queue state is updated
+        setTimeout(async () => {
+          const updatedWaitingPeople = queue.filter(person => person.status === QueueStatus.WAITING);
+          if (updatedWaitingPeople.length > 0) {
+            await processNext();
+          }
+        }, 1000); // Slightly longer delay to ensure queue is updated
+        
       } catch (error) {
         console.error('Error adding back to queue:', error);
       }
@@ -124,17 +141,18 @@ const QueueList = () => {
           </div>
         ) : (
           <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
-            <p className="text-gray-500 dark:text-gray-400 mb-3">No one is currently being served</p>
-            
             {waitingPeople.length > 0 ? (
-              <button
-                onClick={handleProcessNext}
-                className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
-              >
-                Process Next
-              </button>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400 mb-3">Ready to start next player</p>
+                <button
+                  onClick={handleProcessNext}
+                  className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                >
+                  Start Playing
+                </button>
+              </div>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">Queue is empty</p>
+              <p className="text-gray-500 dark:text-gray-400">No one is currently playing</p>
             )}
           </div>
         )}
