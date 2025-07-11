@@ -75,7 +75,7 @@ const QueueList = () => {
             <div className="flex justify-between items-center">
               <div className="flex items-center">
                 <div className="w-12 h-12 rounded-full bg-yellow-500 text-white flex items-center justify-center font-bold text-lg mr-3">
-                  {processingPerson.number}
+                ッ
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
@@ -154,7 +154,7 @@ const QueueList = () => {
                           {...provided.dragHandleProps}
                           className={`${snapshot.isDragging ? 'shadow-lg' : ''}`}
                         >
-                          <QueueCard person={person} />
+                          <QueueCard person={person} position={index + 1} />
                         </div>
                       )}
                     </Draggable>

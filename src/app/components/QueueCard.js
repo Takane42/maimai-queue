@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQueue, QueueStatus } from '../contexts/QueueContext';
 import EditQueueForm from './EditQueueForm';
 
-const QueueCard = ({ person }) => {
+const QueueCard = ({ person, position }) => {
   const { cancelFromQueue } = useQueue();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -65,7 +65,7 @@ const QueueCard = ({ person }) => {
       <div className="flex justify-between items-center">
         <div className="flex items-center">
           <div className="w-10 h-10 rounded-full bg-indigo-600 dark:bg-indigo-700 text-white flex items-center justify-center font-bold mr-3">
-            {person.number}
+            {position || person.position || 1}
           </div>
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-white">{getNameDisplay()}</h3>
