@@ -26,6 +26,13 @@ ENV NODE_ENV=production
 # Default timezone is America/New_York, cron job runs at 10 PM in this timezone
 ENV TIMEZONE=Asia/Jakarta
 
+# Install tzdata for timezone support
+RUN apk add --no-cache tzdata
+
+# Set the timezone
+RUN ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime && echo $TIMEZONE > /etc/timezone
+# Install necessary packages
+
 # Create app directory
 WORKDIR /app
 
