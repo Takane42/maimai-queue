@@ -11,6 +11,8 @@ A modern web application built with Next.js for managing queues on a site. Ideal
 - Drag-and-drop queue reordering
 - Dark mode support
 - Responsive design for all devices
+- **Automated daily queue completion** - All active queue items are automatically completed at 10 PM every day
+- Timezone-aware scheduling (configurable via environment variables)
 
 ## Getting Started
 
@@ -73,6 +75,46 @@ docker run -p 3000:3000 maimai-queue
 ### Data Persistence
 
 The SQLite database is stored in a Docker volume named `sqlite_data`. This ensures that your queue data persists between container restarts.
+
+## Cron Jobs and Automation
+
+### Daily Queue Completion
+
+The application automatically completes all active queue items every day at 10:00 PM. This helps ensure that the queue is reset for the next day.
+
+**Features:**
+- Runs at 10:00 PM in the configured timezone (default: America/New_York)
+- Marks all waiting and processing queue items as "completed"
+- Logs the completion action for monitoring
+- Can be manually triggered via API for testing
+
+### Configuration
+
+**Timezone Settings:**
+You can customize the timezone by setting the `TIMEZONE` environment variable:
+
+```bash
+# Docker run example with custom timezone
+docker run -p 3000:3000 -e TIMEZONE=Europe/London maimai-queue
+
+# Docker compose - add to environment section:
+environment:
+  - TIMEZONE=Asia/Tokyo
+```
+
+**Manual Testing:**
+You can manually trigger the daily completion using the provided test scripts:
+
+```bash
+# Unix/Linux/Mac
+./test-daily-completion.sh
+
+# Windows
+test-daily-completion.bat
+
+# Or directly with curl
+curl -X POST http://localhost:3000/api/cron/complete-daily -H "Content-Type: application/json"
+```
 
 ## Alternative Deployment: Vercel
 

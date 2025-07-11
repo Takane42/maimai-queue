@@ -217,12 +217,38 @@ export const QueueProvider = ({ children }) => {
     // Fallback to calculated stats if API data isn't available
     const queue = data?.queue || [];
     
-    const waitingCount = queue.filter(p => p.status === QueueStatus.WAITING).length;
-    const processingCount = queue.filter(p => p.status === QueueStatus.PROCESSING).length;
+    // Get today's date range
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    
+    // Filter for today's queue entries
+    const todaysQueue = queue.filter(person => {
+      const joinedDate = new Date(person.joinedAt);
+      return joinedDate >= startOfDay && joinedDate < endOfDay;
+    });
+    
+    // Count unique players (both name1 and name2) for each status
+    const waitingPlayers = new Set();
+    const processingPlayers = new Set();
+    
+    todaysQueue.forEach(entry => {
+      if (entry.status === QueueStatus.WAITING) {
+        waitingPlayers.add(entry.name1);
+        if (entry.name2) {
+          waitingPlayers.add(entry.name2);
+        }
+      } else if (entry.status === QueueStatus.PROCESSING) {
+        processingPlayers.add(entry.name1);
+        if (entry.name2) {
+          processingPlayers.add(entry.name2);
+        }
+      }
+    });
     
     return {
-      waiting: waitingCount,
-      processing: processingCount,
+      waiting: waitingPlayers.size,
+      processing: processingPlayers.size,
     };
   };  return (
     <QueueContext.Provider

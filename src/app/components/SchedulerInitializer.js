@@ -2,26 +2,36 @@
 
 import { useEffect } from 'react';
 
+// Component to initialize background services (scheduler and cron jobs)
 export default function SchedulerInitializer() {
   useEffect(() => {
-    // Initialize the scheduler on the client side
-    const initScheduler = async () => {
+    // Initialize the scheduler and cron jobs on the client side
+    const initServices = async () => {
       try {
-        // Call an API endpoint that will initialize the scheduler on the server
-        const response = await fetch('/api/scheduler/init', {
+        // Initialize scheduler
+        const schedulerResponse = await fetch('/api/scheduler/init', {
           method: 'POST',
         });
         
-        if (response.ok) {
+        if (schedulerResponse.ok) {
           console.log('Scheduler initialized successfully');
         }
+
+        // Initialize cron jobs
+        const cronResponse = await fetch('/api/cron/init', {
+          method: 'POST',
+        });
+        
+        if (cronResponse.ok) {
+          console.log('Cron jobs initialized successfully');
+        }
       } catch (error) {
-        console.error('Failed to initialize scheduler:', error);
+        console.error('Failed to initialize services:', error);
       }
     };
 
-    initScheduler();
+    initServices();
   }, []);
 
-  return null; // This component doesn't render anything
+  return null; // This component doesn't render anything, just initializes services
 }

@@ -22,6 +22,10 @@ FROM base AS runner
 
 ENV NODE_ENV=production
 
+# Set timezone for cron jobs (can be overridden with docker run -e TIMEZONE=your_timezone)
+# Default timezone is America/New_York, cron job runs at 10 PM in this timezone
+ENV TIMEZONE=America/New_York
+
 # Create app directory
 WORKDIR /app
 

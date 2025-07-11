@@ -12,6 +12,16 @@ const QueueList = () => {
   // Get waiting people
   const waitingPeople = queue.filter(person => person.status === QueueStatus.WAITING);
   
+  // Get unique waiting players count (including both name1 and name2)
+  const uniqueWaitingPlayers = new Set();
+  waitingPeople.forEach(person => {
+    uniqueWaitingPlayers.add(person.name1);
+    if (person.name2) {
+      uniqueWaitingPlayers.add(person.name2);
+    }
+  });
+  const uniqueWaitingCount = uniqueWaitingPlayers.size;
+  
   // Get currently processing person
   const processingPerson = queue.find(person => person.status === QueueStatus.PROCESSING);
   
@@ -108,7 +118,7 @@ const QueueList = () => {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Waiting List</h2>
           <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 text-sm font-medium px-2.5 py-0.5 rounded">
-            {waitingPeople.length} waiting
+            {uniqueWaitingCount} {uniqueWaitingCount === 1 ? 'player' : 'players'} waiting
           </span>
         </div>
         
