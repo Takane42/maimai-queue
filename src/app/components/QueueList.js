@@ -6,7 +6,7 @@ import QueueCard from './QueueCard';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const QueueList = () => {
-  const { queue, isProcessing, isLoading, processNext, completeProcessing, reorderQueue } = useQueue();
+  const { queue, isProcessing, isLoading, processNext, completeProcessing, reorderQueue, addToQueue } = useQueue();
   const [isDragging, setIsDragging] = useState(false);
   
   // Get waiting people
@@ -32,6 +32,24 @@ const QueueList = () => {
   const handleComplete = async () => {
     if (processingPerson) {
       await completeProcessing(processingPerson.id);
+    }
+  };
+
+  const handlePlayAgain = async () => {
+    if (processingPerson) {
+      // First complete the current session
+      await completeProcessing(processingPerson.id);
+      
+      // Then add them back to the queue with the same details
+      try {
+        await addToQueue({
+          name1: processingPerson.name1,
+          name2: processingPerson.name2 || null,
+          notes: processingPerson.notes || null
+        });
+      } catch (error) {
+        console.error('Error adding back to queue:', error);
+      }
     }
   };
   
@@ -63,7 +81,7 @@ const QueueList = () => {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Now Serving</h2>
+        <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Now Playing</h2>
         
         {isLoading ? (
           <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 animate-pulse">
@@ -88,12 +106,20 @@ const QueueList = () => {
                 </div>
               </div>
               
-              <button
-                onClick={handleComplete}
-                className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
-              >
-                Complete
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handlePlayAgain}
+                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                >
+                  Play Again
+                </button>
+                <button
+                  onClick={handleComplete}
+                  className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                >
+                  Complete
+                </button>
+              </div>
             </div>
           </div>
         ) : (
