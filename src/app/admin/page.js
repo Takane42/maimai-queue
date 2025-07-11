@@ -1,10 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function AdminPage() {
   const [cronResult, setCronResult] = useState(null);
+  const [debugInfo, setDebugInfo] = useState(null);
+  const [currentTime, setCurrentTime] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Update time every second
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const timezone = 'Asia/Jakarta'; // Match your app's timezone
+      const timeString = now.toLocaleString('en-US', {
+        timeZone: timezone,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+      setCurrentTime(timeString);
+    };
+
+    updateTime(); // Initial call
+    const interval = setInterval(updateTime, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, []);
 
   const triggerDailyCompletion = async () => {
     setIsLoading(true);
@@ -27,11 +54,34 @@ export default function AdminPage() {
     }
   };
 
+  const fetchDebugInfo = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/cron/debug');
+      const data = await response.json();
+      setDebugInfo(data);
+    } catch (error) {
+      console.error('Error fetching debug info:', error);
+      setDebugInfo({ error: 'Failed to fetch debug info' });
+    }
+    setIsLoading(false);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
         Admin Panel
       </h1>
+      
+      {/* Real-time Clock */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          Current Time (Asia/Jakarta)
+        </h2>
+        <div className="text-2xl font-mono text-indigo-600 dark:text-indigo-400">
+          {currentTime || 'Loading...'}
+        </div>
+      </div>
       
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -72,6 +122,29 @@ export default function AdminPage() {
                 : 'text-green-700 dark:text-green-300'
             }`}>
               {JSON.stringify(cronResult, null, 2)}
+            </pre>
+          </div>
+        )}
+      </div>
+      
+      {/* Debug Information */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          Debug Information
+        </h2>
+        
+        <button
+          onClick={fetchDebugInfo}
+          disabled={isLoading}
+          className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-md transition-colors mb-4"
+        >
+          {isLoading ? 'Loading...' : 'Fetch Debug Info'}
+        </button>
+        
+        {debugInfo && (
+          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-md">
+            <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap overflow-x-auto">
+              {JSON.stringify(debugInfo, null, 2)}
             </pre>
           </div>
         )}
