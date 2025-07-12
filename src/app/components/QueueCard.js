@@ -76,22 +76,22 @@ const QueueCard = ({ person, position }) => {
         </div>
           <div className="flex items-center">
           {person.status === QueueStatus.WAITING && (
-            <>
+            <div className="flex flex-col sm:flex-row gap-2 mr-3">
               <button 
                 onClick={() => setIsEditing(true)}
-                className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-sm font-medium mr-3"
+                className="bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-medium py-1 px-2 rounded border border-indigo-300 dark:border-indigo-700 transition-colors w-16"
                 aria-label="Edit"
               >
                 Edit
               </button>
               <button 
                 onClick={handleCancel} 
-                className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium mr-3"
+                className="bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium py-1 px-2 rounded border border-red-300 dark:border-red-700 transition-colors w-16"
                 aria-label="Cancel"
               >
                 Cancel
               </button>
-            </>
+            </div>
           )}
           
           <button 

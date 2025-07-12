@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { useQueue, QueueStatus } from '../contexts/QueueContext';
 import QueueCard from './QueueCard';
+import EditQueueForm from './EditQueueForm';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const QueueList = () => {
   const { queue, isProcessing, isLoading, processNext, completeProcessing, reorderQueue, addToQueue } = useQueue();
   const [isDragging, setIsDragging] = useState(false);
+  const [isEditingProcessing, setIsEditingProcessing] = useState(false);
   
   // Get waiting people
   const waitingPeople = queue.filter(person => person.status === QueueStatus.WAITING);
@@ -109,9 +111,6 @@ const QueueList = () => {
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-800 rounded-lg p-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center">
-                <div className="w-12 h-12 rounded-full bg-yellow-500 text-white flex items-center justify-center font-bold text-lg mr-3">
-                ッ
-                </div>
                 <div>
                   <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
                     {processingPerson.name1}
@@ -123,21 +122,40 @@ const QueueList = () => {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+                <button
+                  onClick={() => setIsEditingProcessing(true)}
+                  className="bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-sm font-medium py-3 px-4 rounded border border-indigo-300 dark:border-indigo-700 transition-colors min-h-[44px]"
+                >
+                  Edit
+                </button>
                 <button
                   onClick={handlePlayAgain}
-                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                  className="bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-sm font-medium py-3 px-4 rounded border border-blue-300 dark:border-blue-700 transition-colors min-h-[44px]"
                 >
                   Play Again
                 </button>
                 <button
                   onClick={handleComplete}
-                  className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                  className="bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-300 text-sm font-medium py-3 px-4 rounded border border-green-300 dark:border-green-700 transition-colors min-h-[44px]"
                 >
                   Complete
                 </button>
               </div>
             </div>
+            
+            {/* Edit form for currently processing person */}
+            {isEditingProcessing && processingPerson && (
+              <div className="mt-4">
+                <EditQueueForm 
+                  person={processingPerson} 
+                  onClose={() => setIsEditingProcessing(false)} 
+                  onSuccess={() => {
+                    setIsEditingProcessing(false);
+                  }}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
