@@ -6,7 +6,7 @@ import EditQueueForm from './EditQueueForm';
 
 const QueueCard = ({ person, position }) => {
   const { cancelFromQueue } = useQueue();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(!!person.notes); // Auto-expand if notes exist
   const [isEditing, setIsEditing] = useState(false);
   
   // Format time since joined
