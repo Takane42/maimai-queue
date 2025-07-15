@@ -26,11 +26,21 @@ const QueueCard = ({ person, position }) => {
 
   // Set background and border colors based on status (with dark mode support)
   const getColors = () => {
+    // Special brown theme if notes contain "dan" as a whole word (case insensitive)
+    if (person.notes && /\bdan\b/i.test(person.notes)) {
+      return 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800';
+    }
+    
+    // Special silver theme if notes contain "kaleid" as a whole word (case insensitive)
+    if (person.notes && /\bkaleid\b/i.test(person.notes)) {
+      return 'bg-slate-200 dark:bg-slate-800/40 border-slate-500 dark:border-slate-400';
+    }
+    
     switch (person.status) {
       case QueueStatus.WAITING:
         return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
       case QueueStatus.PROCESSING:
-        return 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-800';
+        return 'bg-yellow-200 dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-600';
       case QueueStatus.COMPLETED:
         return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
       case QueueStatus.CANCELLED:

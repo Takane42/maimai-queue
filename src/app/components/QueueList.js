@@ -108,7 +108,7 @@ const QueueList = () => {
             <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
           </div>
         ) : processingPerson ? (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-800 rounded-lg p-4">
+          <div className="bg-yellow-200 dark:bg-yellow-900/30 border border-yellow-400 dark:border-yellow-600 rounded-lg p-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center">
                 <div>
