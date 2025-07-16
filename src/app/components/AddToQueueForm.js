@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQueue } from '../contexts/QueueContext';
 
 const AddToQueueForm = () => {
-  const { addToQueue, isLoading } = useQueue();
+  const { addToQueue, isLoading, isOffline } = useQueue();
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
     name1: '',
@@ -63,12 +63,17 @@ const AddToQueueForm = () => {
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
+          disabled={isOffline}
+          className={`w-full font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center ${
+            isOffline 
+              ? 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 cursor-not-allowed' 
+              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+          }`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
           </svg>
-          Add to Queue
+          {isOffline ? 'Machine Offline' : 'Add to Queue'}
         </button>
       ) : (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
@@ -147,12 +152,12 @@ const AddToQueueForm = () => {
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting || !formData.name1.trim()}
+                disabled={isSubmitting || !formData.name1.trim() || isOffline}
                 className={`bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-md transition-colors ${
-                  (isSubmitting || !formData.name1.trim()) ? 'opacity-50 cursor-not-allowed' : ''
+                  (isSubmitting || !formData.name1.trim() || isOffline) ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
-                {isSubmitting ? 'Adding...' : 'Add to Queue'}
+                {isSubmitting ? 'Adding...' : isOffline ? 'Machine Offline' : 'Add to Queue'}
               </button>
             </div>
           </form>

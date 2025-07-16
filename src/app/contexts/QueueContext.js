@@ -21,6 +21,12 @@ export const QueueProvider = ({ children }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isOffline, setIsOffline] = useState(false);
+  
+  // Toggle offline mode
+  const toggleOfflineMode = () => {
+    setIsOffline(!isOffline);
+  };
   
   // Fetch queue data using SWR
   const { data, error: swrError } = useSWR('/api/queue', fetcher, {
@@ -258,6 +264,7 @@ export const QueueProvider = ({ children }) => {
         isProcessing,
         isLoading,
         error,
+        isOffline,
         addToQueue,
         getNextInQueue,
         processNext,
@@ -266,6 +273,7 @@ export const QueueProvider = ({ children }) => {
         reorderQueue,
         editQueueItem,
         getQueueStats,
+        toggleOfflineMode,
       }}
     >
       {children}
