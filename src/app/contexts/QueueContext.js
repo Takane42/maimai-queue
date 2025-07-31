@@ -12,6 +12,7 @@ export const QueueStatus = {
   PROCESSING: 'processing',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
+  AFK: 'afk',
 };
 
 // SWR fetcher function
@@ -183,7 +184,45 @@ export const QueueProvider = ({ children }) => {
       console.error('Error reordering queue:', error);
       throw error;
     }
-  };  // Edit a queue item
+  };
+
+  // Toggle AFK status for a person
+  const toggleAFK = async (id) => {
+    try {
+      // First get the current person data to determine the new status
+      const currentQueue = data?.queue || [];
+      const person = currentQueue.find(p => p.id === id);
+      
+      if (!person) {
+        throw new Error('Person not found in queue');
+      }
+      
+      const newStatus = person.status === QueueStatus.AFK ? QueueStatus.WAITING : QueueStatus.AFK;
+      
+      const response = await fetch(`/api/queue/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to toggle AFK status');
+      }
+      
+      const updatedPerson = await response.json();
+      
+      // Update SWR cache
+      mutate('/api/queue');
+      mutate('/api/queue/stats');
+      
+      return updatedPerson;
+    } catch (error) {
+      console.error('Error toggling AFK status:', error);
+      throw error;
+    }
+  };
+
+  // Edit a queue item
   const editQueueItem = async (id, updates) => {
     try {
       const response = await fetch(`/api/queue/${id}`, {
@@ -265,6 +304,7 @@ export const QueueProvider = ({ children }) => {
         cancelFromQueue,
         reorderQueue,
         editQueueItem,
+        toggleAFK,
         getQueueStats,
       }}
     >

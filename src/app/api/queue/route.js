@@ -4,11 +4,16 @@ import { NextResponse } from 'next/server';
 // GET handler to fetch all queue items
 export async function GET() {
   try {
-    // Get all active queue items ordered by position
+    // Get all active queue items ordered by position, with AFK items at the bottom
     const queue = db.prepare(`
       SELECT * FROM queue 
-      WHERE status IN ('waiting', 'processing') 
-      ORDER BY position ASC
+      WHERE status IN ('waiting', 'processing', 'afk') 
+      ORDER BY 
+        CASE 
+          WHEN status = 'afk' THEN 2 
+          ELSE 1 
+        END ASC,
+        position ASC
     `).all();
     
     // Get current number
@@ -42,11 +47,25 @@ export async function POST(request) {
     const currentNumber = currentNumberRow ? parseInt(currentNumberRow.value) : 1;
     const nextNumber = currentNumber + 1;
     
-    // Get the highest position value
+    // Get the highest position value from non-AFK items
     const maxPositionRow = db.prepare(`
       SELECT MAX(position) as maxPosition FROM queue WHERE status IN ('waiting', 'processing')
     `).get();
     const position = maxPositionRow.maxPosition ? maxPositionRow.maxPosition + 1 : 1;
+    
+    // If there are AFK items, we need to shift their positions down
+    const afkItems = db.prepare(`
+      SELECT id FROM queue WHERE status = 'afk' ORDER BY position ASC
+    `).all();
+    
+    if (afkItems.length > 0) {
+      // Shift AFK items down by one position
+      for (let i = 0; i < afkItems.length; i++) {
+        db.prepare(`
+          UPDATE queue SET position = ? WHERE id = ?
+        `).run(position + i + 1, afkItems[i].id);
+      }
+    }
     
     // Insert the new queue item
     const result = db.prepare(`

@@ -95,6 +95,39 @@ export async function PUT(request, { params }) {
         WHERE id = ?
       `).run(new Date().toISOString(), id);
     }
+    else if (status === 'afk' && (queueItem.status === 'waiting' || queueItem.status === 'processing')) {
+      // Mark as AFK - move to bottom of queue
+      const maxPosition = db.prepare(`
+        SELECT MAX(position) as maxPosition FROM queue WHERE status IN ('waiting', 'processing', 'afk')
+      `).get();
+      const newPosition = maxPosition.maxPosition ? maxPosition.maxPosition + 1 : 1;
+      
+      db.prepare(`
+        UPDATE queue 
+        SET status = 'afk', position = ? 
+        WHERE id = ?
+      `).run(newPosition, id);
+    }
+    else if (status === 'waiting' && queueItem.status === 'afk') {
+      // Return from AFK - insert above other AFK items
+      const maxNonAfkPosition = db.prepare(`
+        SELECT MAX(position) as maxPosition FROM queue WHERE status IN ('waiting', 'processing')
+      `).get();
+      const newPosition = maxNonAfkPosition.maxPosition ? maxNonAfkPosition.maxPosition + 1 : 1;
+      
+      // Shift AFK items down
+      db.prepare(`
+        UPDATE queue 
+        SET position = position + 1 
+        WHERE status = 'afk' AND id != ?
+      `).run(id);
+      
+      db.prepare(`
+        UPDATE queue 
+        SET status = 'waiting', position = ? 
+        WHERE id = ?
+      `).run(newPosition, id);
+    }
     
     // Update position if provided (for drag and drop)
     if (position !== undefined) {

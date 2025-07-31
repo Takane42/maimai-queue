@@ -5,7 +5,7 @@ import { useQueue, QueueStatus } from '../contexts/QueueContext';
 import EditQueueForm from './EditQueueForm';
 
 const QueueCard = ({ person, position }) => {
-  const { cancelFromQueue } = useQueue();
+  const { cancelFromQueue, toggleAFK } = useQueue();
   const [isExpanded, setIsExpanded] = useState(!!person.notes); // Auto-expand if notes exist
   const [isEditing, setIsEditing] = useState(false);
   
@@ -45,12 +45,14 @@ const QueueCard = ({ person, position }) => {
         return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
       case QueueStatus.CANCELLED:
         return 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700';
+      case QueueStatus.AFK:
+        return 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800';
       default:
         return 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700';
     }
   };
   
-  // Get the name display with both names if available
+  // Get the name display with both names if available (removed AFK indicator from here)
   const getNameDisplay = () => {
     if (person.name2) {
       return (
@@ -68,35 +70,60 @@ const QueueCard = ({ person, position }) => {
       await cancelFromQueue(person.id);
     }
   };
+
+  const handleAFK = async () => {
+    await toggleAFK(person.id);
+  };
   return (
     <div 
       className={`rounded-lg border ${getColors()} p-4 mb-3 transition-all`}
     >
       <div className="flex justify-between items-center">
-        <div className="flex items-center">
-          <div className="w-10 h-10 rounded-full bg-indigo-600 dark:bg-indigo-700 text-white flex items-center justify-center font-bold mr-3">
-            {position || person.position || 1}
+        <div className="flex items-center flex-1 min-w-0">
+          <div className={`w-10 h-10 rounded-full ${
+            person.status === QueueStatus.AFK 
+              ? 'bg-orange-600 dark:bg-orange-700' 
+              : 'bg-indigo-600 dark:bg-indigo-700'
+          } text-white flex items-center justify-center font-bold mr-3 flex-shrink-0`}>
+            {person.status === QueueStatus.AFK ? (
+              <span className="text-xs">AFK</span>
+            ) : (
+              position || person.position || 1
+            )}
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 dark:text-white">{getNameDisplay()}</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 flex-wrap">
+              {getNameDisplay()}
+            </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {formatTimeSince(person.joinedAt)} ago
             </p>
           </div>
         </div>
-          <div className="flex items-center">
-          {person.status === QueueStatus.WAITING && (
-            <div className="flex flex-col sm:flex-row gap-2 mr-3">
+        <div className="flex items-center ml-2 flex-shrink-0">
+          {(person.status === QueueStatus.WAITING || person.status === QueueStatus.AFK) && (
+            <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 mr-2">
               <button 
                 onClick={() => setIsEditing(true)}
-                className="bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-medium py-1 px-2 rounded border border-indigo-300 dark:border-indigo-700 transition-colors w-16"
+                className="bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-medium py-1 px-2 rounded border border-indigo-300 dark:border-indigo-700 transition-colors w-16 text-center"
                 aria-label="Edit"
               >
                 Edit
               </button>
               <button 
+                onClick={handleAFK}
+                className={`${
+                  person.status === QueueStatus.AFK 
+                    ? 'bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700' 
+                    : 'bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700'
+                } text-xs font-medium py-1 px-2 rounded border transition-colors w-16 text-center`}
+                aria-label={person.status === QueueStatus.AFK ? "Return from AFK" : "Mark as AFK"}
+              >
+                {person.status === QueueStatus.AFK ? 'Back' : 'AFK'}
+              </button>
+              <button 
                 onClick={handleCancel} 
-                className="bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium py-1 px-2 rounded border border-red-300 dark:border-red-700 transition-colors w-16"
+                className="bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium py-1 px-2 rounded border border-red-300 dark:border-red-700 transition-colors w-16 text-center"
                 aria-label="Cancel"
               >
                 Cancel
@@ -106,7 +133,7 @@ const QueueCard = ({ person, position }) => {
           
           <button 
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1"
             aria-label={isExpanded ? "Collapse details" : "Expand details"}
           >
             {isExpanded ? (

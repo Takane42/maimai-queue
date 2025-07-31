@@ -17,7 +17,7 @@ export async function PUT(request) {
     db.prepare('BEGIN TRANSACTION').run();
     
     try {
-      // Update each item's position
+      // Update each item's position (only for non-AFK items)
       for (let i = 0; i < items.length; i++) {
         db.prepare(`
           UPDATE queue 
@@ -29,11 +29,16 @@ export async function PUT(request) {
       // Commit the transaction
       db.prepare('COMMIT').run();
       
-      // Get the updated queue
+      // Get the updated queue with AFK items at the bottom
       const updatedQueue = db.prepare(`
         SELECT * FROM queue 
-        WHERE status IN ('waiting', 'processing') 
-        ORDER BY position ASC
+        WHERE status IN ('waiting', 'processing', 'afk') 
+        ORDER BY 
+          CASE 
+            WHEN status = 'afk' THEN 1 
+            ELSE 0 
+          END ASC,
+          position ASC
       `).all();
       
       return NextResponse.json(updatedQueue);

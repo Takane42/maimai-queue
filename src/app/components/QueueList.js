@@ -11,7 +11,12 @@ const QueueList = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isEditingProcessing, setIsEditingProcessing] = useState(false);
   
-  // Get waiting people
+  // Get waiting and AFK people (AFK people will be at the bottom as per backend ordering)
+  const displayPeople = queue.filter(person => 
+    person.status === QueueStatus.WAITING || person.status === QueueStatus.AFK
+  );
+  
+  // Get waiting people only for calculations
   const waitingPeople = queue.filter(person => person.status === QueueStatus.WAITING);
   
   // Get unique waiting players count (including both name1 and name2)
@@ -85,10 +90,28 @@ const QueueList = () => {
       return;
     }
     
-    // Create a new array of waiting people with the updated order
-    const items = Array.from(waitingPeople);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+    // Don't allow dragging AFK items
+    const sourceItem = displayPeople[result.source.index];
+    if (sourceItem.status === QueueStatus.AFK) {
+      return;
+    }
+    
+    // For waiting items, reorder only within the waiting section
+    const waitingOnlyItems = displayPeople.filter(person => person.status === QueueStatus.WAITING);
+    
+    // Find the source and destination indices within waiting items
+    const sourceWaitingIndex = waitingOnlyItems.findIndex(person => person.id === sourceItem.id);
+    let destinationWaitingIndex = result.destination.index;
+    
+    // If destination is beyond waiting items (into AFK), adjust it
+    const waitingCount = waitingOnlyItems.length;
+    if (destinationWaitingIndex >= waitingCount) {
+      destinationWaitingIndex = waitingCount - 1;
+    }
+    
+    const items = Array.from(waitingOnlyItems);
+    const [reorderedItem] = items.splice(sourceWaitingIndex, 1);
+    items.splice(destinationWaitingIndex, 0, reorderedItem);
     
     // Update the backend
     await reorderQueue(items);
@@ -198,7 +221,7 @@ const QueueList = () => {
               </div>
             ))}
           </div>
-        ) : waitingPeople.length > 0 ? (
+        ) : displayPeople.length > 0 ? (
           <DragDropContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
             <Droppable droppableId="queue">
               {(provided) => (
@@ -207,8 +230,13 @@ const QueueList = () => {
                   ref={provided.innerRef}
                   className={`transition-all duration-200 ${isDragging ? 'bg-blue-50 dark:bg-blue-900/10 rounded-lg p-2' : ''}`}
                 >
-                  {waitingPeople.map((person, index) => (
-                    <Draggable key={person.id} draggableId={String(person.id)} index={index}>
+                  {displayPeople.map((person, index) => (
+                    <Draggable 
+                      key={person.id} 
+                      draggableId={String(person.id)} 
+                      index={index}
+                      isDragDisabled={person.status === QueueStatus.AFK}
+                    >
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
