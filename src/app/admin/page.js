@@ -7,6 +7,8 @@ export default function AdminPage() {
   const [debugInfo, setDebugInfo] = useState(null);
   const [currentTime, setCurrentTime] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [schedulerStatus, setSchedulerStatus] = useState(null);
+  const [schedulerLoading, setSchedulerLoading] = useState(false);
 
   // Update time every second
   useEffect(() => {
@@ -32,6 +34,47 @@ export default function AdminPage() {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch scheduler status on component mount
+  useEffect(() => {
+    fetchSchedulerStatus();
+  }, []);
+
+  const fetchSchedulerStatus = async () => {
+    try {
+      const response = await fetch('/api/scheduler');
+      const data = await response.json();
+      setSchedulerStatus(data);
+    } catch (error) {
+      console.error('Error fetching scheduler status:', error);
+    }
+  };
+
+  const toggleScheduler = async () => {
+    if (schedulerLoading) return;
+    
+    setSchedulerLoading(true);
+    const action = schedulerStatus?.isEnabled ? 'disable' : 'enable';
+    
+    try {
+      const response = await fetch('/api/scheduler', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action })
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        await fetchSchedulerStatus(); // Refresh status
+      }
+    } catch (error) {
+      console.error('Error toggling scheduler:', error);
+    } finally {
+      setSchedulerLoading(false);
+    }
+  };
 
   const triggerDailyCompletion = async () => {
     setIsLoading(true);
@@ -87,6 +130,57 @@ export default function AdminPage() {
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
           Cron Job Management
         </h2>
+        
+        {/* Scheduler Status */}
+        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-md">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-medium text-gray-900 dark:text-white mb-2">Scheduler Status</h3>
+              {schedulerStatus ? (
+                <div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    schedulerStatus.isEnabled 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                  }`}>
+                    {schedulerStatus.isEnabled ? 'Enabled' : 'Disabled'}
+                  </span>
+                  {schedulerStatus.lastToggleTime && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Last toggled: {new Date(schedulerStatus.lastToggleTime).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">Loading scheduler status...</p>
+              )}
+            </div>
+            
+            {/* Toggle Switch */}
+            {schedulerStatus && (
+              <div className="flex items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400 mr-3">
+                  {schedulerLoading ? 'Updating...' : 'Toggle Scheduler'}
+                </span>
+                <button
+                  onClick={toggleScheduler}
+                  disabled={schedulerLoading}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                    schedulerStatus.isEnabled
+                      ? 'bg-green-600 dark:bg-green-500'
+                      : 'bg-gray-200 dark:bg-gray-700'
+                  } ${schedulerLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      schedulerStatus.isEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
         
         <div className="mb-4">
           <p className="text-gray-600 dark:text-gray-300 mb-4">
@@ -177,7 +271,13 @@ export default function AdminPage() {
           
           <div>
             <h3 className="font-medium text-gray-900 dark:text-white mb-2">Status</h3>
-            <p className="text-green-600 dark:text-green-400">Active</p>
+            <p className={`${
+              schedulerStatus?.isEnabled 
+                ? 'text-green-600 dark:text-green-400' 
+                : 'text-red-600 dark:text-red-400'
+            }`}>
+              {schedulerStatus?.isEnabled ? 'Active' : 'Disabled'}
+            </p>
           </div>
         </div>
       </div>

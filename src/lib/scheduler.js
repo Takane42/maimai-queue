@@ -1,13 +1,21 @@
 import cron from 'node-cron';
 
 let isScheduled = false;
+let cronTask = null;
+let schedulerEnabled = true;
 
 export function scheduleReset() {
   if (isScheduled) return;
   
   // Schedule reset every day at 10 PM (22:00)
-  cron.schedule('0 22 * * *', async () => {
+  cronTask = cron.schedule('0 22 * * *', async () => {
     try {
+      // Check if scheduler is enabled before running
+      if (!schedulerEnabled) {
+        console.log('Scheduler is disabled, skipping scheduled reset');
+        return;
+      }
+      
       console.log('Running scheduled database reset at 10 PM...');
       
       // Call the reset API internally
@@ -33,6 +41,24 @@ export function scheduleReset() {
   
   isScheduled = true;
   console.log('Daily reset scheduler initialized - will run at 10 PM every day');
+}
+
+export function enableScheduler() {
+  schedulerEnabled = true;
+  console.log('Scheduler enabled');
+}
+
+export function disableScheduler() {
+  schedulerEnabled = false;
+  console.log('Scheduler disabled');
+}
+
+export function getSchedulerStatus() {
+  return {
+    isScheduled,
+    isEnabled: schedulerEnabled,
+    cronTask: cronTask ? 'active' : 'inactive'
+  };
 }
 
 // Alternative approach using interval checking
