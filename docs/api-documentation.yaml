@@ -1,0 +1,889 @@
+openapi: 3.0.3
+info:
+  title: Maimai Queue Management API
+  description: |
+    A comprehensive queue management system for gaming venues. 
+    
+    This API provides endpoints for managing a queue system with features including:
+    - Adding players to queue
+    - Managing queue positions and status
+    - AFK (Away From Keyboard) player handling
+    - Automated daily completion scheduling
+    - Real-time queue updates
+    
+    The system supports both single and dual player entries, custom notes, and various queue statuses.
+  version: 1.0.0
+  contact:
+    name: Maimai Queue API Support
+    url: https://github.com/Takane42/maimai-queue
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://your-production-domain.com/api
+    description: Production server
+
+tags:
+  - name: Queue Management
+    description: Core queue operations
+  - name: Player Management
+    description: Individual player operations
+  - name: Queue Analytics
+    description: Statistics and history
+  - name: Scheduler
+    description: Automated task scheduling
+  - name: System
+    description: System management and settings
+
+paths:
+  /queue:
+    get:
+      tags:
+        - Queue Management
+      summary: Get all active queue items
+      description: Retrieves all active queue items (waiting, processing, AFK) ordered by position
+      responses:
+        '200':
+          description: Successfully retrieved queue data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queue:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QueueItem'
+                  currentNumber:
+                    type: integer
+                    description: Next queue number to be assigned
+                    example: 42
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Queue Management
+      summary: Add new player(s) to queue
+      description: Adds a new entry to the queue. Supports single or dual player entries.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name1
+              properties:
+                name1:
+                  type: string
+                  description: Primary player name
+                  example: "Alice"
+                name2:
+                  type: string
+                  description: Secondary player name (optional for duo play)
+                  example: "Bob"
+                notes:
+                  type: string
+                  description: Additional notes or comments
+                  example: "First time playing"
+      responses:
+        '200':
+          description: Successfully added to queue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueItem'
+        '400':
+          description: Bad request - missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /queue/{id}:
+    get:
+      tags:
+        - Player Management
+      summary: Get specific queue item
+      description: Retrieves details of a specific queue item by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Queue item ID
+          example: 123
+      responses:
+        '200':
+          description: Successfully retrieved queue item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueItem'
+        '404':
+          description: Queue item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Player Management
+      summary: Update queue item
+      description: |
+        Updates a queue item's status, position, or details. 
+        Supports various status transitions:
+        - waiting → processing (start playing)
+        - processing → completed (finish playing)
+        - waiting/processing → afk (mark as AFK)
+        - afk → waiting (return from AFK)
+        - any → cancelled (remove from queue)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Queue item ID
+          example: 123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [waiting, processing, completed, cancelled, afk]
+                  description: New status for the queue item
+                  example: "processing"
+                position:
+                  type: integer
+                  description: New position in queue (for drag-and-drop reordering)
+                  example: 3
+                name1:
+                  type: string
+                  description: Updated primary player name
+                  example: "Alice Updated"
+                name2:
+                  type: string
+                  description: Updated secondary player name
+                  example: "Bob Updated"
+                notes:
+                  type: string
+                  description: Updated notes
+                  example: "Updated notes"
+      responses:
+        '200':
+          description: Successfully updated queue item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueItem'
+        '404':
+          description: Queue item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Player Management
+      summary: Remove queue item
+      description: Permanently removes a queue item from the database and reorders remaining items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Queue item ID
+          example: 123
+      responses:
+        '200':
+          description: Successfully deleted queue item
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Queue item deleted"
+        '404':
+          description: Queue item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /queue/{id}/position:
+    put:
+      tags:
+        - Player Management
+      summary: Update queue item position
+      description: Updates the position of a specific queue item for drag-and-drop reordering
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Queue item ID
+          example: 123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - position
+              properties:
+                position:
+                  type: integer
+                  description: New position in queue
+                  example: 5
+      responses:
+        '200':
+          description: Successfully updated position
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueItem'
+        '404':
+          description: Queue item not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /queue/reorder:
+    put:
+      tags:
+        - Queue Management
+      summary: Reorder multiple queue items
+      description: Bulk reorder multiple queue items with new positions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - updates
+              properties:
+                updates:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: Queue item ID
+                        example: 123
+                      position:
+                        type: integer
+                        description: New position
+                        example: 2
+      responses:
+        '200':
+          description: Successfully reordered items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Queue reordered successfully"
+                  updated:
+                    type: integer
+                    example: 5
+        '400':
+          description: Bad request - invalid updates array
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /queue/history:
+    get:
+      tags:
+        - Queue Analytics
+      summary: Get queue history
+      description: Retrieves completed and cancelled queue items for historical analysis
+      responses:
+        '200':
+          description: Successfully retrieved queue history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QueueItem'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /queue/stats:
+    get:
+      tags:
+        - Queue Analytics
+      summary: Get queue statistics
+      description: Retrieves various statistics about the queue system
+      responses:
+        '200':
+          description: Successfully retrieved queue statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalActive:
+                    type: integer
+                    description: Total active queue items
+                    example: 15
+                  waiting:
+                    type: integer
+                    description: Items waiting to play
+                    example: 12
+                  processing:
+                    type: integer
+                    description: Items currently playing
+                    example: 2
+                  afk:
+                    type: integer
+                    description: Items marked as AFK
+                    example: 1
+                  totalCompleted:
+                    type: integer
+                    description: Total completed items (all time)
+                    example: 87
+                  totalCancelled:
+                    type: integer
+                    description: Total cancelled items (all time)
+                    example: 3
+                  averageWaitTime:
+                    type: number
+                    description: Average wait time in minutes
+                    example: 25.5
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /queue/reset:
+    post:
+      tags:
+        - System
+      summary: Reset queue system
+      description: |
+        Marks all active queue items as completed and resets the queue system.
+        This is typically used for daily reset operations.
+      responses:
+        '200':
+          description: Successfully reset queue
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Queue reset successfully"
+                  completed:
+                    type: integer
+                    description: Number of items marked as completed
+                    example: 15
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-08-05T14:30:00.000Z"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /scheduler:
+    get:
+      tags:
+        - Scheduler
+      summary: Get scheduler status
+      description: Retrieves the current status of the automated scheduler
+      responses:
+        '200':
+          description: Successfully retrieved scheduler status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isEnabled:
+                    type: boolean
+                    description: Whether scheduler is enabled
+                    example: true
+                  lastToggleTime:
+                    type: string
+                    format: date-time
+                    description: When scheduler was last toggled
+                    example: "2025-08-05T10:00:00.000Z"
+                  status:
+                    type: string
+                    description: Human-readable status
+                    example: "active"
+                  schedulerInfo:
+                    type: object
+                    description: Additional scheduler information
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Scheduler
+      summary: Toggle scheduler
+      description: Enables or disables the automated daily completion scheduler
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+              properties:
+                action:
+                  type: string
+                  enum: [enable, disable]
+                  description: Action to perform on scheduler
+                  example: "enable"
+      responses:
+        '200':
+          description: Successfully toggled scheduler
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  action:
+                    type: string
+                    example: "enable"
+                  previousState:
+                    type: string
+                    example: "disabled"
+                  currentState:
+                    type: string
+                    example: "enabled"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-08-05T14:30:00.000Z"
+                  message:
+                    type: string
+                    example: "Scheduler enabled successfully"
+        '400':
+          description: Bad request - invalid action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /scheduler/init:
+    post:
+      tags:
+        - Scheduler
+      summary: Initialize scheduler
+      description: Initializes the automated scheduler system
+      responses:
+        '200':
+          description: Successfully initialized scheduler
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Scheduler initialized successfully"
+                  status:
+                    type: string
+                    example: "active"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /cron/complete-daily:
+    post:
+      tags:
+        - Scheduler
+      summary: Trigger daily completion
+      description: |
+        Manually triggers the daily completion process that marks active queue items as completed.
+        Respects AFK exclusion settings if configured.
+      responses:
+        '200':
+          description: Successfully completed daily process
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully completed 15 queue items (excluded 2 AFK players)"
+                  completed:
+                    type: integer
+                    description: Number of items marked as completed
+                    example: 15
+                  afkExcluded:
+                    type: boolean
+                    description: Whether AFK players were excluded
+                    example: true
+                  excludedAfkCount:
+                    type: integer
+                    description: Number of AFK players excluded
+                    example: 2
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-08-05T22:00:00.000Z"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /cron/afk-exclusion:
+    get:
+      tags:
+        - System
+      summary: Get AFK exclusion status
+      description: Retrieves the current AFK exclusion setting for daily completion
+      responses:
+        '200':
+          description: Successfully retrieved AFK exclusion status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  excludeAfkFromCompletion:
+                    type: boolean
+                    description: Whether AFK players are excluded from daily completion
+                    example: true
+                  lastToggleTime:
+                    type: string
+                    format: date-time
+                    description: When setting was last changed
+                    example: "2025-08-05T10:00:00.000Z"
+                  status:
+                    type: string
+                    description: Human-readable status
+                    example: "AFK players excluded"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - System
+      summary: Toggle AFK exclusion
+      description: Toggles whether AFK players should be excluded from daily completion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - excludeAfkFromCompletion
+              properties:
+                excludeAfkFromCompletion:
+                  type: boolean
+                  description: Whether to exclude AFK players from daily completion
+                  example: true
+      responses:
+        '200':
+          description: Successfully toggled AFK exclusion
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  excludeAfkFromCompletion:
+                    type: boolean
+                    example: true
+                  previousState:
+                    type: string
+                    example: "included"
+                  currentState:
+                    type: string
+                    example: "excluded"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-08-05T14:30:00.000Z"
+                  message:
+                    type: string
+                    example: "AFK players will now be excluded from daily completion"
+        '400':
+          description: Bad request - invalid boolean value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /cron/debug:
+    get:
+      tags:
+        - System
+      summary: Get debug information
+      description: Retrieves system debug information for troubleshooting
+      responses:
+        '200':
+          description: Successfully retrieved debug information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-08-05T14:30:00.000Z"
+                  environment:
+                    type: string
+                    example: "development"
+                  database:
+                    type: object
+                    description: Database status information
+                  scheduler:
+                    type: object
+                    description: Scheduler status information
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - System
+      summary: Run debug operation
+      description: Executes debug operations for system testing
+      responses:
+        '200':
+          description: Successfully executed debug operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Debug operation completed"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-08-05T14:30:00.000Z"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /cron/init:
+    post:
+      tags:
+        - System
+      summary: Initialize cron system
+      description: Initializes the cron job system for automated tasks
+      responses:
+        '200':
+          description: Successfully initialized cron system
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Cron system initialized successfully"
+                  status:
+                    type: string
+                    example: "active"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    QueueItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the queue item
+          example: 123
+        number:
+          type: integer
+          description: Queue number assigned to the player(s)
+          example: 42
+        name1:
+          type: string
+          description: Primary player name
+          example: "Alice"
+        name2:
+          type: string
+          nullable: true
+          description: Secondary player name (for duo play)
+          example: "Bob"
+        notes:
+          type: string
+          nullable: true
+          description: Additional notes or comments
+          example: "First time playing"
+        status:
+          type: string
+          enum: [waiting, processing, completed, cancelled, afk]
+          description: Current status of the queue item
+          example: "waiting"
+        position:
+          type: integer
+          description: Position in the queue
+          example: 5
+        joinedAt:
+          type: string
+          format: date-time
+          description: When the player(s) joined the queue
+          example: "2025-08-05T14:30:00.000Z"
+        processingStartedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When processing started (if applicable)
+          example: "2025-08-05T15:00:00.000Z"
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the queue item was completed (if applicable)
+          example: "2025-08-05T15:30:00.000Z"
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the queue item was cancelled (if applicable)
+          example: "2025-08-05T15:15:00.000Z"
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message describing what went wrong
+          example: "Queue item not found"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Optional API key for authenticated requests
+
+security:
+  - ApiKeyAuth: []
+  - {} # Allow unauthenticated requests
+
+externalDocs:
+  description: Find more info about Maimai Queue Management System
+  url: https://github.com/Takane42/maimai-queue
