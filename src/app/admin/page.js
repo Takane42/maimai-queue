@@ -9,6 +9,8 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [schedulerStatus, setSchedulerStatus] = useState(null);
   const [schedulerLoading, setSchedulerLoading] = useState(false);
+  const [afkExclusionStatus, setAfkExclusionStatus] = useState(null);
+  const [afkExclusionLoading, setAfkExclusionLoading] = useState(false);
 
   // Update time every second
   useEffect(() => {
@@ -38,6 +40,7 @@ export default function AdminPage() {
   // Fetch scheduler status on component mount
   useEffect(() => {
     fetchSchedulerStatus();
+    fetchAfkExclusionStatus();
   }, []);
 
   const fetchSchedulerStatus = async () => {
@@ -47,6 +50,16 @@ export default function AdminPage() {
       setSchedulerStatus(data);
     } catch (error) {
       console.error('Error fetching scheduler status:', error);
+    }
+  };
+
+  const fetchAfkExclusionStatus = async () => {
+    try {
+      const response = await fetch('/api/cron/afk-exclusion');
+      const data = await response.json();
+      setAfkExclusionStatus(data);
+    } catch (error) {
+      console.error('Error fetching AFK exclusion status:', error);
     }
   };
 
@@ -73,6 +86,32 @@ export default function AdminPage() {
       console.error('Error toggling scheduler:', error);
     } finally {
       setSchedulerLoading(false);
+    }
+  };
+
+  const toggleAfkExclusion = async () => {
+    if (afkExclusionLoading) return;
+    
+    setAfkExclusionLoading(true);
+    const newValue = !afkExclusionStatus?.excludeAfkFromCompletion;
+    
+    try {
+      const response = await fetch('/api/cron/afk-exclusion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ excludeAfkFromCompletion: newValue })
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        await fetchAfkExclusionStatus(); // Refresh status
+      }
+    } catch (error) {
+      console.error('Error toggling AFK exclusion:', error);
+    } finally {
+      setAfkExclusionLoading(false);
     }
   };
 
@@ -174,6 +213,63 @@ export default function AdminPage() {
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                       schedulerStatus.isEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* AFK Exclusion Setting */}
+        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-md">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-medium text-gray-900 dark:text-white mb-2">AFK Player Exclusion</h3>
+              {afkExclusionStatus ? (
+                <div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    afkExclusionStatus.excludeAfkFromCompletion 
+                      ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                  }`}>
+                    {afkExclusionStatus.excludeAfkFromCompletion ? 'AFK Players Excluded' : 'AFK Players Included'}
+                  </span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {afkExclusionStatus.excludeAfkFromCompletion 
+                      ? 'AFK players will NOT be marked as completed during daily reset'
+                      : 'AFK players will be marked as completed during daily reset'
+                    }
+                  </p>
+                  {afkExclusionStatus.lastToggleTime && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Last changed: {new Date(afkExclusionStatus.lastToggleTime).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">Loading AFK exclusion status...</p>
+              )}
+            </div>
+            
+            {/* AFK Exclusion Toggle Switch */}
+            {afkExclusionStatus && (
+              <div className="flex items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400 mr-3">
+                  {afkExclusionLoading ? 'Updating...' : 'Exclude AFK'}
+                </span>
+                <button
+                  onClick={toggleAfkExclusion}
+                  disabled={afkExclusionLoading}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                    afkExclusionStatus.excludeAfkFromCompletion
+                      ? 'bg-orange-600 dark:bg-orange-500'
+                      : 'bg-gray-200 dark:bg-gray-700'
+                  } ${afkExclusionLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      afkExclusionStatus.excludeAfkFromCompletion ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
                 </button>

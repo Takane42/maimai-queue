@@ -6,31 +6,55 @@ export async function POST() {
   try {
     const currentDate = new Date().toISOString();
     
-    // Get all active queue items (waiting or processing)
+    // Check AFK exclusion setting
+    let excludeAfk = false;
+    try {
+      const afkResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/cron/afk-exclusion`);
+      if (afkResponse.ok) {
+        const afkData = await afkResponse.json();
+        excludeAfk = afkData.excludeAfkFromCompletion;
+      }
+    } catch (error) {
+      console.log('Could not fetch AFK exclusion setting, defaulting to include AFK players');
+    }
+    
+    // Build the query based on AFK exclusion setting
+    const statusCondition = excludeAfk 
+      ? "status IN ('waiting', 'processing')" 
+      : "status IN ('waiting', 'processing', 'afk')";
+    
+    // Get all active queue items (based on exclusion setting)
     const activeItems = db.prepare(`
-      SELECT id FROM queue 
-      WHERE status IN ('waiting', 'processing')
+      SELECT id, status FROM queue 
+      WHERE ${statusCondition}
     `).all();
     
     if (activeItems.length === 0) {
       return NextResponse.json({ 
         message: 'No active queue items to complete',
-        completed: 0 
+        completed: 0,
+        afkExcluded: excludeAfk,
+        excludedAfkCount: excludeAfk ? db.prepare("SELECT COUNT(*) as count FROM queue WHERE status = 'afk'").get().count : 0
       });
     }
     
-    // Mark all active items as completed
+    // Mark all active items as completed (based on exclusion setting)
     const result = db.prepare(`
       UPDATE queue 
       SET status = 'completed', completedAt = ? 
-      WHERE status IN ('waiting', 'processing')
+      WHERE ${statusCondition}
     `).run(currentDate);
     
-    console.log(`Daily cron job: Completed ${result.changes} queue items at ${currentDate}`);
+    // Get count of excluded AFK items if applicable
+    const excludedAfkCount = excludeAfk ? db.prepare("SELECT COUNT(*) as count FROM queue WHERE status = 'afk'").get().count : 0;
+    
+    console.log(`Daily cron job: Completed ${result.changes} queue items at ${currentDate}${excludeAfk ? ` (excluded ${excludedAfkCount} AFK players)` : ''}`);
     
     return NextResponse.json({ 
-      message: `Successfully completed ${result.changes} queue items`,
+      message: `Successfully completed ${result.changes} queue items${excludeAfk ? ` (excluded ${excludedAfkCount} AFK players)` : ''}`,
       completed: result.changes,
+      afkExcluded: excludeAfk,
+      excludedAfkCount: excludedAfkCount,
       timestamp: currentDate
     });
   } catch (error) {
