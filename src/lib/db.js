@@ -2,8 +2,12 @@ import BetterSqlite3 from 'better-sqlite3';
 import { join } from 'path';
 import fs from 'fs';
 
-// Make sure the database directory exists
-const dbDir = join(process.cwd(), 'data');
+// Use /tmp directory for Vercel compatibility
+// Note: This is temporary storage and data will be lost between deployments
+const dbDir = process.env.NODE_ENV === 'production' 
+  ? '/tmp'
+  : join(process.cwd(), 'data');
+
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
@@ -12,9 +16,12 @@ if (!fs.existsSync(dbDir)) {
 const dbPath = join(dbDir, 'queue.db');
 const db = new BetterSqlite3(dbPath);
 
-// Enable foreign keys
+// Enable foreign keys and optimize for serverless
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
+db.pragma('synchronous = NORMAL');
+db.pragma('cache_size = 1000');
+db.pragma('temp_store = memory');
 
 // Create tables if they don't exist
 db.exec(`
@@ -37,9 +44,6 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
-  
-  -- Add resetDate column if it doesn't exist (for migration)
-  PRAGMA table_info(queue);
 `);
 
 // Initialize settings if not present

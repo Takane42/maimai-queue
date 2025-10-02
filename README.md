@@ -120,4 +120,32 @@ curl -X POST http://localhost:3000/api/cron/complete-daily -H "Content-Type: app
 
 The easiest way to deploy your Next.js app without Docker is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
+### Important Notes for Vercel Deployment
+
+**⚠️ Database Limitations:**
+
+- Vercel's serverless functions have a read-only filesystem (except `/tmp`)
+- SQLite data stored in `/tmp` is **temporary** and will be lost between deployments
+- For production on Vercel, consider using:
+  - [Vercel Postgres](https://vercel.com/docs/storage/vercel-postgres)
+  - [PlanetScale](https://planetscale.com/)
+  - [Supabase](https://supabase.com/)
+  - [Neon](https://neon.tech/)
+
+**Automatic Deployment:**
+
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Vercel will automatically deploy on every push to main
+
+**Manual Deployment:**
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
+```
+
 Check out [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
