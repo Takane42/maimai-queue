@@ -1,4 +1,7 @@
-version: '3'
+networks:
+  traefik:
+    name: traefik
+    external: true
 
 services:
   app:
@@ -6,13 +9,23 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
+    networks:
+      - traefik
     volumes:
       # Create a persistent volume for the SQLite database
       - sqlite_data:/app/data
     environment:
       - NODE_ENV=production
+      - TZ=Asia/Jakarta
+      - TIMEZONE=Asia/Jakarta
+      - NEXT_PUBLIC_BASE_URL=https://q.natadesu.my.id/
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.que.rule=Host(`q.natadesu.my.id`)"
+      - "traefik.http.routers.que.tls=true"
+      - "traefik.http.routers.que.tls.certresolver=myresolver"
 
 volumes:
   sqlite_data:
