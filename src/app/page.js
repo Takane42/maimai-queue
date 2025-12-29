@@ -8,6 +8,7 @@ export default function Home() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Queue Management</h1>
         <p className="text-gray-600 dark:text-gray-400">Manage your queue and keep track of waiting customers</p>
+        <p className="text-gray-600 dark:text-gray-400">Mohon untuk memasukan nama hanya ketika anda berada di venue</p>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
